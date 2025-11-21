@@ -2,21 +2,36 @@
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <string.h>
+#include <WiFi.h>
 
 // SH1106 I2C constructor for 1.3" 128x64 OLED
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
-const char VERSION[7] = "v0.3.3";
+const char VERSION[7] = "v0.4.1";
 
 const int smallLineSpacing = 13;
 int optionIndex = 0;
-int topIndex = 0;
-const int visibleLines = 5;
+int optionsTopIndex = 0;
+const int optionsVisibleLines = 5;
 const char* options[] = {" Network Scanner ", " Device Scanner ", " Packet Sniffer ", " Channel Analyzer ", " RSSI Meter ", " Wardriving Logger ", " Fake AP ", " Deauth Tester ", " Battery Monitor "};
 int lenOptions = sizeof(options) / sizeof(options[0]);
 
+bool comingFromInfo = false;
+bool scanStarted = false;
+bool hasScanned = false;
+int foundNetworks = 0;
+String ssidList[50];
+int rssiList[50];
+int channelList[50];
+int encList[50];
+int currentNetworkIndex = 0;
+int currentNetworkTopIndex = 0;
+const int currentNetworkVisibleLines = 4;
+
+
+
 enum ButtonEvent { BTN_NONE, BTN_UP, BTN_DOWN, BTN_SELECT, BTN_BACK };
-enum ScreenState { START_SCREEN, MENU_SCREEN, NETWORK_SCANNER_SCREEN, DEVICE_SCANNER_SCREEN, PACKET_SNIFFER_SCREEN, CHANNEL_ANALYZER_SCREEN, RSSI_METER_SCREEN, WARDRIVING_LOGGER_SCREEN, FAKE_AP_SCREEN, DEAUTH_TESTER_SCREEN, BATTERY_MONITOR_SCREEN };
+enum ScreenState { START_SCREEN, MENU_SCREEN, NETWORK_SCANNER_SCREEN, DEVICE_SCANNER_SCREEN, PACKET_SNIFFER_SCREEN, CHANNEL_ANALYZER_SCREEN, RSSI_METER_SCREEN, WARDRIVING_LOGGER_SCREEN, FAKE_AP_SCREEN, DEAUTH_TESTER_SCREEN, BATTERY_MONITOR_SCREEN, NETWORK_INFO_SCREEN };
 ScreenState currentScreen = START_SCREEN;
 
 ButtonEvent getButtonEvent() {
@@ -44,12 +59,153 @@ ButtonEvent getButtonEvent() {
     return BTN_NONE;
 }
 
+String encToString(int enc) {
+    switch (enc) {
+        case WIFI_AUTH_OPEN: return "Open";
+        case WIFI_AUTH_WEP: return "WEP";
+        case WIFI_AUTH_WPA_PSK: return "WPA";
+        case WIFI_AUTH_WPA2_PSK: return "WPA2";
+        case WIFI_AUTH_WPA_WPA2_PSK: return "WPA/WPA2";
+        case WIFI_AUTH_WPA2_ENTERPRISE: return "WPA2-Ent";
+        case WIFI_AUTH_WPA3_PSK: return "WPA3";
+        case WIFI_AUTH_WPA2_WPA3_PSK: return "WPA2/WPA3";
+        case WIFI_AUTH_WAPI_PSK: return "WAPI";
+        default: return "Unknown";
+    }
+}
 
-void NetworkScannerDisplay(ButtonEvent evt) {
+
+void NetworkInfoDisplay(ButtonEvent evt) {
     u8g2.setCursor(0, 12);
-    u8g2.print("network scanner selected");
+    u8g2.print("Network Info:");
+
+    u8g2.setCursor(0, 24);
+    u8g2.print("SSID: ");
+    u8g2.print(ssidList[currentNetworkIndex]);
+
+    u8g2.setCursor(0, 36);
+    u8g2.print("RSSI: ");
+    u8g2.print(rssiList[currentNetworkIndex]);
+
+    u8g2.setCursor(0, 48);
+    u8g2.print("Channels: ");
+    u8g2.print(channelList[currentNetworkIndex]);
+
+    u8g2.setCursor(0, 60);
+    u8g2.print("Encryption: ");
+    u8g2.print(encToString(encList[currentNetworkIndex]));  // Later we can translate this code into WPA/WPA2/WEP etc.
 
     if (evt == BTN_BACK) {
+        comingFromInfo = true;
+        currentScreen = NETWORK_SCANNER_SCREEN;  // go back to scrolling list
+    }
+}
+
+
+void NetworkScannerDisplay(ButtonEvent evt) {
+    if (!scanStarted && !comingFromInfo) {
+        u8g2.drawStr(0, 12, "network scanner");
+        u8g2.drawStr(0, 24, "scanning...");
+        scanStarted = true;
+        return;
+    }
+    u8g2.drawStr(0, 12, "network scanner");
+
+    if (!hasScanned) {
+        WiFi.mode(WIFI_STA);
+        WiFi.disconnect();
+        delay(100);
+
+        foundNetworks = WiFi.scanNetworks();
+        if (foundNetworks > 50) foundNetworks = 50;
+
+        Serial.print(foundNetworks);
+        Serial.println(" networks found");
+
+        for (int i = 0; i < foundNetworks; i++) {
+            ssidList[i] = WiFi.SSID(i);
+            rssiList[i] = WiFi.RSSI(i);
+            channelList[i] = WiFi.channel(i);
+            encList[i] = WiFi.encryptionType(i);
+            Serial.print("SSID: ");
+            Serial.print(ssidList[i]);
+            Serial.print(", RSSI: ");
+            Serial.print(rssiList[i]);
+            Serial.print(", Channel: ");
+            Serial.print(channelList[i]);
+            Serial.print(", Encryption: ");
+            Serial.println(encList[i]);
+        }
+
+
+
+
+        hasScanned = true;
+    }
+
+    if (foundNetworks == 0) {
+        u8g2.drawStr(0, 24, "No Networks Found");
+        Serial.println("No networks found");
+    } else {
+
+
+        u8g2.setCursor(0, 12);
+        u8g2.print("  Networks Found: ");
+        u8g2.print(foundNetworks);
+
+        if (evt == BTN_DOWN) {
+            if (currentNetworkIndex < foundNetworks - 1) {
+                currentNetworkIndex++;
+            } else {
+                currentNetworkIndex = 0;
+                currentNetworkTopIndex = 0;
+            }
+        }
+        if (evt == BTN_UP) {
+            if (currentNetworkIndex > 0) {
+                currentNetworkIndex--;
+            } else {
+                currentNetworkIndex = foundNetworks - 1;
+                currentNetworkTopIndex = (foundNetworks > currentNetworkVisibleLines) ? (foundNetworks - currentNetworkVisibleLines) : 0;
+            }
+        }
+        if (evt == BTN_SELECT) {
+            currentScreen = NETWORK_INFO_SCREEN;
+            return;
+        }
+
+        if (currentNetworkIndex < currentNetworkTopIndex) {
+            currentNetworkTopIndex = currentNetworkIndex;
+        }
+        if (currentNetworkIndex >= currentNetworkTopIndex + currentNetworkVisibleLines) {
+            currentNetworkTopIndex = currentNetworkIndex - currentNetworkVisibleLines + 1;
+        }
+
+        int linesToShow = (foundNetworks < currentNetworkVisibleLines) ? foundNetworks : currentNetworkVisibleLines;
+
+        for (int i = 0; i < linesToShow; i++) {
+            int netIdx = currentNetworkTopIndex + i;
+            int y = (2 + i) * smallLineSpacing - 3;
+            if (netIdx == currentNetworkIndex) {
+                u8g2.setDrawColor(0);
+                u8g2.setCursor(0, y);
+                u8g2.print(ssidList[netIdx]);
+                u8g2.setDrawColor(1);
+            }
+            else {
+                u8g2.setDrawColor(1);
+                u8g2.setCursor(0, y);
+                u8g2.print(ssidList[netIdx]);
+            }
+
+        }
+
+    }
+
+    if (evt == BTN_BACK) {
+        comingFromInfo = false;
+        scanStarted = false;
+        hasScanned = false;
         currentScreen = MENU_SCREEN;
     }
 }
@@ -184,7 +340,7 @@ void MenuDisplay(ButtonEvent evt) {
             optionIndex++;
         } else {
             optionIndex = 0;
-            topIndex = 0;
+            optionsTopIndex = 0;
         }
     }
     if (evt == BTN_UP) {
@@ -192,12 +348,17 @@ void MenuDisplay(ButtonEvent evt) {
             optionIndex--;
         } else {
             optionIndex = lenOptions - 1;
-            topIndex = (lenOptions > visibleLines) ? (lenOptions - visibleLines) : 0;
+            optionsTopIndex = (lenOptions > optionsVisibleLines) ? (lenOptions - optionsVisibleLines) : 0;
         }
     }
     if (evt == BTN_SELECT) {
         switch (optionIndex) {
-            case 0: currentScreen = NETWORK_SCANNER_SCREEN; break;
+            default: currentScreen = START_SCREEN; break;
+            case 0:
+                currentNetworkIndex = 0;
+                currentNetworkTopIndex = 0;
+                currentScreen = NETWORK_SCANNER_SCREEN;
+                break;
             case 1: currentScreen = DEVICE_SCANNER_SCREEN; break;
             case 2: currentScreen = PACKET_SNIFFER_SCREEN; break;
             case 3: currentScreen = CHANNEL_ANALYZER_SCREEN; break;
@@ -212,17 +373,17 @@ void MenuDisplay(ButtonEvent evt) {
         currentScreen = START_SCREEN;
     }
 
-    if (optionIndex < topIndex) {
-        topIndex = optionIndex;
+    if (optionIndex < optionsTopIndex) {
+        optionsTopIndex = optionIndex;
     }
-    if (optionIndex >= topIndex + visibleLines) {
-        topIndex = optionIndex - visibleLines + 1;
+    if (optionIndex >= optionsTopIndex + optionsVisibleLines) {
+        optionsTopIndex = optionIndex - optionsVisibleLines + 1;
     }
 
-    int linesToShow = (lenOptions < visibleLines) ? lenOptions : visibleLines;
+    int linesToShow = (lenOptions < optionsVisibleLines) ? lenOptions : optionsVisibleLines;
 
     for (int i = 0; i < linesToShow; i++) {
-        int optIdx = topIndex + i;
+        int optIdx = optionsTopIndex + i;
         int y = (1 + i) * smallLineSpacing - 3;
         if (optIdx == optionIndex) {
             u8g2.setDrawColor(0);
@@ -302,6 +463,9 @@ void loop() {
             break;
         case BATTERY_MONITOR_SCREEN:
             BatteryMonitorDisplay(evt);
+            break;
+        case NETWORK_INFO_SCREEN:
+            NetworkInfoDisplay(evt);
             break;
     }
 
