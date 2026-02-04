@@ -5,16 +5,29 @@
 #include "MenuScreen.h"
 #include <U8g2lib.h>
 #include "ScreenManager.h"
-#include "StartScreen.h"
 #include "UIConstants.h"
+#include "StartScreen.h"
+#include "NetworkScannerScreen.h"
 
 
 // these still live globally for now
 extern U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2;
-extern const char* options[];
-extern int lenOptions;
-extern int optionIndex;
-extern int optionsTopIndex;
+// MenuScreen.cpp
+static const char* options[] = {
+    " Network Scanner ",
+    " Device Scanner ",
+    " Packet Sniffer ",
+    " Channel Analyzer ",
+    " RSSI Meter ",
+    " Wardriving Logger ",
+    " Fake AP ",
+    " Deauth Tester ",
+    " Battery Monitor "
+};
+
+static const int lenOptions = sizeof(options) / sizeof(options[0]);
+static int optionIndex = 0;
+static int optionsTopIndex = 0;
 
 void menuEnter() {}
 
@@ -32,7 +45,15 @@ void menuEvent(ButtonEvent evt) {
     }
 
     if (evt == BTN_SELECT) {
-        // TEMP: just go back to start later
+        switch (optionIndex) {
+            case 0:
+                requestNetworkScanReset();
+                requestScreen(&NetworkScannerScreen);
+                break;
+                // future screens go here
+            default:
+                requestScreen(&MenuScreen);
+        }
     }
 
     if (evt == BTN_BACK) {
