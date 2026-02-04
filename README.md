@@ -7,7 +7,6 @@ WiFi Scraper is a feature-rich ESP32-based WiFi scanning and network analysis to
 ## Features
 
 - **Network Scanner**: Scan nearby WiFi networks and view SSID, RSSI, channel, and encryption type.
-- **Network Info**: Select a network from the scanner list to view detailed information.
 - **Device Scanner** *(coming soon)*: Detect devices connected to the network.
 - **Packet Sniffer** *(coming soon)*: Capture and analyze network packets.
 - **Channel Analyzer** *(coming soon)*: Analyze channel congestion and optimize WiFi performance.
