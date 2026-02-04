@@ -12,8 +12,6 @@
 // SH1106 I2C constructor for 1.3" 128x64 OLED
 U8G2_SH1106_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE);
 
-
-
 const char VERSION[7] = "v0.5.0";
 
 Screen* currentScreen = nullptr;

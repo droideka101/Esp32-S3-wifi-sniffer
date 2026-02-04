@@ -138,7 +138,6 @@ void NetworkScannerDraw() {
 
     if (foundNetworks == 0) {
         u8g2.drawStr(0, 24, "No Networks Found");
-        Serial.println("No networks found");
     } else {
         u8g2.setCursor(0, 12);
         u8g2.print(" Networks Found: ");
