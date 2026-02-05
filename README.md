@@ -31,5 +31,5 @@ WiFi Scraper is a feature-rich ESP32-based WiFi scanning and network analysis to
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/<your-username>/wifi-scraper.git
+   git clone https://github.com/droideka101/Esp32-S3-wifi-sniffer
    cd wifi-scraper
