@@ -28,6 +28,10 @@ static bool wifiPrompted = false;
 static bool scanStarted = false;
 static bool scanComplete = false;
 
+static int nextIP = 1;
+static bool scanComplete = false;
+
+
 String readLineFromSerial() {
     String input = "";
     while (true) {
@@ -126,6 +130,51 @@ void scanForDevices() {
     }
 }
 
+void ScanForDevicesTest() {
+    deviceCount = 0;
+
+
+    IPAddress localIP = WiFi.localIP();
+    IPAddress subnet = WiFi.subnetMask();
+
+
+
+    for (int batch = 0; batch < 5 && nextIP < 255; batch++) {
+        IPAddress target(
+            localIP[0],
+            localIP[1],
+            localIP[2],
+            nextIP
+        );
+
+        Serial.print("Pinging: ");
+        Serial.println(target);
+
+        if (Ping.ping(target)) {
+            Serial.println(" - alive");
+            devices[deviceCount].ip = target;
+            devices[deviceCount].alive = true;
+            devices[deviceCount].hostname = ""; // optional later
+            deviceCount++;
+        } else {
+            Serial.println(" - failed");
+        }
+        nextIP++;
+    }
+    if (nextIP > 255) {
+        scanComplete = true;
+    }
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_6x12_mr);
+    u8g2.drawStr(0, 12, "Scanning devices...");
+    u8g2.setCursor(0, 24);
+    u8g2.print("Progress: "); u8g2.print(nextIP-1); u8g2.print("/254");
+    u8g2.sendBuffer();
+
+    return;
+}
+
+
 void DeviceScannerEnter() {
     deviceCount = 0;
     currentDeviceIndex = 0;
@@ -181,7 +230,15 @@ void DeviceScannerDraw() {
     }
 
     // Draw results (later)
+    u8g2.clearBuffer();
+    u8g2.setFont(u8g2_font_6x12_mr);
     u8g2.drawStr(0, 12, "Devices found:");
+    for (int i = 0; i < deviceCount && i < 4; i++) { // 4 lines visible
+        u8g2.setCursor(0, 24 + i*12);
+        u8g2.print(devices[i].ip);
+    }
+    u8g2.sendBuffer();
+
     // listing logic will go here
 }
 
