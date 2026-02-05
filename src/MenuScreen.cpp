@@ -6,9 +6,18 @@
 #include <U8g2lib.h>
 #include "ScreenManager.h"
 #include "UIConstants.h"
+
 #include "StartScreen.h"
 #include "NetworkScannerScreen.h"
 #include "DeviceScannerScreen.h"
+#include "PacketSnifferScreen.h"
+#include "ChannelAnalyzerScreen.h"
+#include "RSSIMeterScreen.h"
+#include "WarDrivingLoggerScreen.h"
+#include "FakeAPScreen.h"
+#include "DeauthTesterScreen.h"
+#include "BatteryMonitorScreen.h"
+
 
 
 // these still live globally for now
@@ -54,7 +63,27 @@ void menuEvent(ButtonEvent evt) {
             case 1:
                 requestScreen(&DeviceScannerScreen);
                 break;
-                // future screens go here
+            case 2:
+                requestScreen(&PacketSnifferScreen);
+                break;
+            case 3:
+                requestScreen(&ChannelAnalyzerScreen);
+                break;
+            case 4:
+                requestScreen(&RSSIMeterScreen);
+                break;
+            case 5:
+                requestScreen(&WarDrivingLoggerScreen);
+                break;
+            case 6:
+                requestScreen(&FakeAPScreen);
+                break;
+            case 7:
+                requestScreen(&DeauthTesterScreen);
+                break;
+            case 8:
+                requestScreen(&BatteryMonitorScreen);
+                break;
             default:
                 requestScreen(&MenuScreen);
         }
