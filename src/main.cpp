@@ -106,6 +106,8 @@ ButtonEvent getButtonEvent() {
 void setup() {
     // Start serial for debugging
     Serial.begin(115200);
+    delay(2000);
+    Serial.println("Serial alive");
     // Start the custom I2C pins
     Wire.begin(48, 47);  // SDA=48, SCL=47
     // Initialize the display

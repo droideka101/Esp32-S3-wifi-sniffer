@@ -2,7 +2,7 @@
 // Created by ben on 04/02/2026.
 //
 
-#ifndef WIFI_SNIFFER_DEVICESCANNERSCREEN_H
-#define WIFI_SNIFFER_DEVICESCANNERSCREEN_H
+#pragma once
+#include "Screen.h"
 
-#endif //WIFI_SNIFFER_DEVICESCANNERSCREEN_H
+extern Screen DeviceScannerScreen;

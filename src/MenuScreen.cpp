@@ -8,6 +8,7 @@
 #include "UIConstants.h"
 #include "StartScreen.h"
 #include "NetworkScannerScreen.h"
+#include "DeviceScannerScreen.h"
 
 
 // these still live globally for now
@@ -49,6 +50,9 @@ void menuEvent(ButtonEvent evt) {
             case 0:
                 requestNetworkScanReset();
                 requestScreen(&NetworkScannerScreen);
+                break;
+            case 1:
+                requestScreen(&DeviceScannerScreen);
                 break;
                 // future screens go here
             default:
